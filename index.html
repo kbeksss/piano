@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Piano">
+<meta name="theme-color" content="#87d4ff">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>Piano</title>
+<style>
+  * {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+    touch-action: none;
+  }
+
+  body {
+    position: fixed;
+    inset: 0;
+    font-family: sans-serif;
+    background: linear-gradient(180deg, #79d0ff 0%, #e5f6ff 46%, #ffe7a8 100%);
+  }
+
+  #app {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding:
+      max(6px, env(safe-area-inset-top))
+      max(8px, env(safe-area-inset-right))
+      max(6px, env(safe-area-inset-bottom))
+      max(8px, env(safe-area-inset-left));
+  }
+
+  #range {
+    position: relative;
+    flex: 0 0 64px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    touch-action: none;
+    cursor: grab;
+  }
+
+  #range.dragging {
+    cursor: grabbing;
+  }
+
+  #minis {
+    display: flex;
+    width: 100%;
+    height: 36px;
+    gap: 3px;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  .mini {
+    flex: 1 1 0;
+    min-width: 0;
+    border-radius: 5px;
+    background: var(--c);
+    opacity: 0.38;
+    box-shadow:
+      inset 0 2px 0 rgba(255, 255, 255, 0.45),
+      inset 0 -2px 0 rgba(0, 0, 0, 0.14);
+  }
+
+  .mini.on {
+    opacity: 1;
+  }
+
+  #frame {
+    position: absolute;
+    left: calc(100% * 7 / 22);
+    width: calc(100% * 8 / 22);
+    top: 8px;
+    height: 48px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.72);
+    box-shadow:
+      inset 0 0 0 2px rgba(255, 255, 255, 0.95),
+      0 4px 10px rgba(70, 90, 130, 0.16);
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  #piano {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    gap: 8px;
+    padding: 10px;
+    border-radius: 28px;
+    background: rgba(255, 255, 255, 0.48);
+    box-shadow:
+      inset 0 0 0 3px rgba(255, 255, 255, 0.7),
+      0 8px 18px rgba(70, 90, 120, 0.12);
+    touch-action: none;
+    cursor: pointer;
+  }
+
+  .tile {
+    flex: 1 1 0;
+    min-width: 0;
+    border-radius: 18px;
+    background-color: var(--c);
+    background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.38), transparent 34%);
+    box-shadow:
+      inset 0 0 0 3px rgba(255, 255, 255, 0.28),
+      0 7px 0 rgba(70, 45, 90, 0.2);
+    transition: transform 70ms ease, box-shadow 70ms ease, filter 70ms ease;
+  }
+
+  .tile.pressed {
+    transform: translateY(6px);
+    filter: brightness(1.08);
+    box-shadow:
+      inset 0 0 0 3px rgba(255, 255, 255, 0.28),
+      0 1px 0 rgba(70, 45, 90, 0.2);
+  }
+
+  .tile:focus,
+  #range:focus {
+    outline: none;
+  }
+</style>
+</head>
+<body>
+  <main id="app">
+    <div id="range" role="slider" aria-label="Note range" aria-valuemin="0" aria-valuemax="14" aria-valuenow="7">
+      <div id="frame"></div>
+      <div id="minis">
+        <div class="mini" style="--c:#FF4D4D"></div>
+        <div class="mini" style="--c:#FF8A1E"></div>
+        <div class="mini" style="--c:#F5C400"></div>
+        <div class="mini" style="--c:#3CC45A"></div>
+        <div class="mini" style="--c:#14B8A6"></div>
+        <div class="mini" style="--c:#3B82F6"></div>
+        <div class="mini" style="--c:#A855F7"></div>
+        <div class="mini on" style="--c:#FF4D4D"></div>
+        <div class="mini on" style="--c:#FF8A1E"></div>
+        <div class="mini on" style="--c:#F5C400"></div>
+        <div class="mini on" style="--c:#3CC45A"></div>
+        <div class="mini on" style="--c:#14B8A6"></div>
+        <div class="mini on" style="--c:#3B82F6"></div>
+        <div class="mini on" style="--c:#A855F7"></div>
+        <div class="mini on" style="--c:#FF4D4D"></div>
+        <div class="mini" style="--c:#FF8A1E"></div>
+        <div class="mini" style="--c:#F5C400"></div>
+        <div class="mini" style="--c:#3CC45A"></div>
+        <div class="mini" style="--c:#14B8A6"></div>
+        <div class="mini" style="--c:#3B82F6"></div>
+        <div class="mini" style="--c:#A855F7"></div>
+        <div class="mini" style="--c:#FF4D4D"></div>
+      </div>
+    </div>
+    <div id="piano">
+      <div class="tile" data-index="0" role="button" aria-label="C4" style="--c:#FF4D4D"></div>
+      <div class="tile" data-index="1" role="button" aria-label="D4" style="--c:#FF8A1E"></div>
+      <div class="tile" data-index="2" role="button" aria-label="E4" style="--c:#F5C400"></div>
+      <div class="tile" data-index="3" role="button" aria-label="F4" style="--c:#3CC45A"></div>
+      <div class="tile" data-index="4" role="button" aria-label="G4" style="--c:#14B8A6"></div>
+      <div class="tile" data-index="5" role="button" aria-label="A4" style="--c:#3B82F6"></div>
+      <div class="tile" data-index="6" role="button" aria-label="B4" style="--c:#A855F7"></div>
+      <div class="tile" data-index="7" role="button" aria-label="C5" style="--c:#FF4D4D"></div>
+    </div>
+  </main>
+
+  <script>
+    const TOTAL = 22;
+    const VISIBLE = 8;
+    const COLORS = ['#FF4D4D', '#FF8A1E', '#F5C400', '#3CC45A', '#14B8A6', '#3B82F6', '#A855F7'];
+    const SCALE = [0, 2, 4, 5, 7, 9, 11];
+    const NAMES = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+
+    const range = document.getElementById('range');
+    const minis = document.getElementById('minis');
+    const frame = document.getElementById('frame');
+    const piano = document.getElementById('piano');
+
+    let offset = 7;
+    let ctx = null;
+    let master = null;
+    let audioFailed = false;
+    const downs = new Map();
+    let rangeDrag = null;
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function freqOf(index) {
+      const midi = 48 + Math.floor(index / 7) * 12 + SCALE[index % 7];
+      return 440 * Math.pow(2, (midi - 69) / 12);
+    }
+
+    function noteName(index) {
+      return NAMES[index % 7] + (3 + Math.floor(index / 7));
+    }
+
+    function audio() {
+      if (audioFailed) return null;
+      try {
+        if (!ctx) {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          ctx = new AC();
+          master = ctx.createGain();
+          master.gain.value = 0.9;
+          const filter = ctx.createBiquadFilter();
+          filter.type = 'lowpass';
+          filter.frequency.value = 2400;
+          const comp = ctx.createDynamicsCompressor();
+          comp.threshold.value = -18;
+          comp.knee.value = 16;
+          comp.ratio.value = 6;
+          comp.attack.value = 0.003;
+          comp.release.value = 0.18;
+          master.connect(filter);
+          filter.connect(comp);
+          comp.connect(ctx.destination);
+        }
+        if (ctx.state === 'suspended') ctx.resume();
+        return ctx;
+      } catch (err) {
+        audioFailed = true;
+        return null;
+      }
+    }
+
+    function build() {
+      paint();
+    }
+
+    function paint() {
+      for (let i = 0; i < TOTAL; i++) {
+        minis.children[i].classList.toggle('on', i >= offset && i < offset + VISIBLE);
+      }
+      const held = new Set();
+      downs.forEach((voice) => held.add(voice.tile));
+      for (let i = 0; i < VISIBLE; i++) {
+        const tile = piano.children[i];
+        const note = offset + i;
+        tile.style.setProperty('--c', COLORS[note % 7]);
+        tile.setAttribute('aria-label', noteName(note));
+        tile.classList.toggle('pressed', held.has(i));
+      }
+      range.setAttribute('aria-valuenow', String(offset));
+      range.setAttribute('aria-valuetext', noteName(offset) + ' to ' + noteName(offset + VISIBLE - 1));
+      placeFrame();
+      if (ctx) {
+        downs.forEach((voice) => {
+          if (!voice.silent) retune(voice, freqOf(offset + voice.tile));
+        });
+      }
+    }
+
+    function placeFrame() {
+      const first = minis.children[offset];
+      const last = minis.children[offset + VISIBLE - 1];
+      if (!first || !last) return;
+      const host = range.getBoundingClientRect();
+      const a = first.getBoundingClientRect();
+      const b = last.getBoundingClientRect();
+      if (a.width === 0) return;
+      const padX = 4;
+      const padY = 6;
+      frame.style.left = (a.left - host.left - padX) + 'px';
+      frame.style.width = (b.right - a.left + padX * 2) + 'px';
+      frame.style.top = (a.top - host.top - padY) + 'px';
+      frame.style.height = (a.height + padY * 2) + 'px';
+    }
+
+    function miniPitch() {
+      const a = minis.children[0].getBoundingClientRect();
+      const b = minis.children[1].getBoundingClientRect();
+      const pitch = b.left - a.left;
+      return pitch > 0 ? pitch : 24;
+    }
+
+    function setOffset(next) {
+      const clamped = clamp(next, 0, TOTAL - VISIBLE);
+      if (clamped === offset) return;
+      offset = clamped;
+      paint();
+    }
+
+    function tileFromX(x) {
+      const kids = piano.children;
+      for (let i = 0; i < kids.length; i++) {
+        const rect = kids[i].getBoundingClientRect();
+        const left = i === 0
+          ? -Infinity
+          : (kids[i - 1].getBoundingClientRect().right + rect.left) / 2;
+        const right = i === kids.length - 1
+          ? Infinity
+          : (rect.right + kids[i + 1].getBoundingClientRect().left) / 2;
+        if (x >= left && x < right) return i;
+      }
+      return 0;
+    }
+
+    function startVoice(id, tile) {
+      const existing = downs.get(id);
+      if (existing && existing.tile === tile) return;
+      if (existing) {
+        downs.delete(id);
+        releaseVoice(existing);
+      }
+
+      const ac = audio();
+      if (!ac) {
+        downs.set(id, { tile: tile, silent: true });
+        paint();
+        return;
+      }
+
+      const now = ac.currentTime;
+      const frequency = freqOf(offset + tile);
+      const gain = ac.createGain();
+      const level = 0.18;
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(level, now + 0.02);
+      gain.connect(master);
+
+      const partials = [
+        [1, 'triangle', 1],
+        [2, 'sine', 0.28],
+        [4, 'sine', 0.08]
+      ];
+      const oscs = partials.map(([mult, type, amount]) => {
+        const osc = ac.createOscillator();
+        const partialGain = ac.createGain();
+        osc.type = type;
+        osc.frequency.value = frequency * mult;
+        partialGain.gain.value = amount;
+        osc.connect(partialGain);
+        partialGain.connect(gain);
+        osc.start(now);
+        return { osc: osc, mult: mult };
+      });
+
+      downs.set(id, { tile: tile, gain: gain, oscs: oscs, level: level, silent: false });
+      paint();
+    }
+
+    function releaseVoice(voice) {
+      if (!voice || voice.silent || !ctx) return;
+      const now = ctx.currentTime;
+      const gain = voice.gain.gain;
+      gain.cancelScheduledValues(now);
+      const current = Math.max(gain.value, 0.05);
+      gain.setValueAtTime(current, now);
+      gain.exponentialRampToValueAtTime(0.0001, now + 0.38);
+      voice.oscs.forEach((part) => {
+        try { part.osc.stop(now + 0.42); } catch (err) {}
+      });
+    }
+
+    function retune(voice, frequency) {
+      const now = ctx.currentTime;
+      voice.oscs.forEach((part) => {
+        part.osc.frequency.setTargetAtTime(frequency * part.mult, now, 0.015);
+      });
+    }
+
+    function stopVoice(id) {
+      const voice = downs.get(id);
+      if (!voice) return;
+      downs.delete(id);
+      releaseVoice(voice);
+      paint();
+    }
+
+    function stopAll() {
+      Array.from(downs.keys()).forEach(stopVoice);
+    }
+
+    range.addEventListener('pointerdown', (event) => {
+      if (event.pointerType === 'mouse' && event.button !== 0) return;
+      event.preventDefault();
+      range.classList.add('dragging');
+      rangeDrag = { id: event.pointerId, x: event.clientX, origin: offset };
+      try { range.setPointerCapture(event.pointerId); } catch (err) {}
+    }, { passive: false });
+
+    function updateRangeDrag(event) {
+      if (!rangeDrag || rangeDrag.id !== event.pointerId) return;
+      const steps = Math.round((event.clientX - rangeDrag.x) / miniPitch());
+      setOffset(rangeDrag.origin + steps);
+    }
+
+    function endRangeDrag(event) {
+      if (!rangeDrag || rangeDrag.id !== event.pointerId) return;
+      rangeDrag = null;
+      range.classList.remove('dragging');
+    }
+
+    range.addEventListener('pointermove', updateRangeDrag);
+    range.addEventListener('pointerup', (event) => {
+      updateRangeDrag(event);
+      endRangeDrag(event);
+    });
+    range.addEventListener('pointercancel', endRangeDrag);
+
+    piano.addEventListener('pointerdown', (event) => {
+      if (event.pointerType === 'mouse' && event.button !== 0) return;
+      event.preventDefault();
+      try { piano.setPointerCapture(event.pointerId); } catch (err) {}
+      startVoice(event.pointerId, tileFromX(event.clientX));
+    }, { passive: false });
+
+    piano.addEventListener('pointermove', (event) => {
+      if (!downs.has(event.pointerId)) return;
+      const tile = tileFromX(event.clientX);
+      if (downs.get(event.pointerId).tile !== tile) startVoice(event.pointerId, tile);
+    });
+
+    piano.addEventListener('pointerup', (event) => stopVoice(event.pointerId));
+    piano.addEventListener('pointercancel', (event) => stopVoice(event.pointerId));
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowRight' || event.key === 'ArrowUp') {
+        event.preventDefault();
+        setOffset(offset + 1);
+      } else if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') {
+        event.preventDefault();
+        setOffset(offset - 1);
+      }
+    });
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) stopAll();
+    });
+
+    document.addEventListener('contextmenu', (event) => event.preventDefault());
+    document.addEventListener('touchmove', (event) => event.preventDefault(), { passive: false });
+    document.addEventListener('gesturestart', (event) => event.preventDefault(), { passive: false });
+    document.addEventListener('gesturechange', (event) => event.preventDefault(), { passive: false });
+
+    window.addEventListener('resize', placeFrame);
+    window.addEventListener('orientationchange', () => setTimeout(placeFrame, 80));
+
+    build();
+    requestAnimationFrame(placeFrame);
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(function () {});
+    }
+  </script>
+</body>
+</html>

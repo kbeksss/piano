@@ -1,0 +1,16 @@
+{
+  "name": "Piano",
+  "short_name": "Piano",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#87d4ff",
+  "theme_color": "#87d4ff",
+  "icons": [
+    {
+      "src": "icon-180.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}
